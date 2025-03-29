@@ -14,7 +14,7 @@ import { AccommodationModule } from './accommodation/accommodation.module';
       url: process.env.DATABASE_URL,
       autoLoadEntities: true,
       synchronize: true, // Use only for dev!
-      logging: true,
+      logging: false, // SQL logging
       entities: [Test],
     }),
     AccommodationModule,
