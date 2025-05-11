@@ -1,6 +1,6 @@
 import { Button, Container, Divider, Typography } from "@mui/material";
-import AccommodationList from "../components/AccommodationList";
-import AccommodationForm from "../components/AccommodationForm";
+import AccommodationList from "../features/Accommodation/AccommodationList";
+import AccommodationForm from "../features/Accommodation/AccommodationForm";
 import { useState } from "react";
 import GoogleMapsProvider from "../components/GoogleMapsProvider";
 import ModalWrapper from "../components/ModalWrapper";

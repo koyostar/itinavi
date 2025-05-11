@@ -1,3 +1,5 @@
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+
 export type Accommodation = {
   id?: number;
   hotel: string;
@@ -7,43 +9,61 @@ export type Accommodation = {
   notes?: string;
 };
 
-const API_URL = `${import.meta.env.VITE_API_BASE_URL}/accommodation`;
+export const accommodationApi = createApi({
+  reducerPath: "accommodationApi", // key for this API slice in Redux store
+  baseQuery: fetchBaseQuery({ baseUrl: import.meta.env.VITE_API_BASE_URL }), // shared base URL
+  tagTypes: ["Accommodations"], // used for cache invalidation
+  endpoints: (builder) => ({
+    // GET /accommodation
+    getAccommodations: builder.query<Accommodation[], void>({
+      query: () => "/accommodation",
+      providesTags: ["Accommodations"],
+    }),
 
-export async function createAccommodation(
-  data: Accommodation
-): Promise<Accommodation> {
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  return res.json();
-}
+    // GET /accommodation/:id
+    getOneAccommodation: builder.query<Accommodation, number>({
+      query: (id) => `/accommodation/${id}`,
+    }),
 
-export async function getAllAccommodations(): Promise<Accommodation[]> {
-  const res = await fetch(API_URL);
-  return res.json();
-}
+    // POST /accommodation
+    createAccommodation: builder.mutation<Accommodation, Accommodation>({
+      query: (newData) => ({
+        url: "/accommodation",
+        method: "POST",
+        body: newData,
+      }),
+      invalidatesTags: ["Accommodations"],
+    }),
 
-export async function getOneAccommodation(id: number): Promise<Accommodation> {
-  const res = await fetch(`${API_URL}/${id}`);
-  return res.json();
-}
+    // DELETE /accommodation/:id
+    deleteAccommodation: builder.mutation<void, number>({
+      query: (id) => ({
+        url: `/accommodation/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Accommodations"],
+    }),
 
-export async function deleteAccommodation(id: number): Promise<void> {
-  await fetch(`${API_URL}/${id}`, {
-    method: "DELETE",
-  });
-}
+    // PUT /accommodation/:id
+    updateAccommodation: builder.mutation<
+      Accommodation,
+      { id: number; data: Partial<Accommodation> }
+    >({
+      query: ({ id, data }) => ({
+        url: `/accommodation/${id}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: ["Accommodations"],
+    }),
+  }),
+});
 
-export async function updateAccommodation(
-  id: number,
-  data: Partial<Accommodation>
-): Promise<Accommodation> {
-  const res = await fetch(`${API_URL}/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-  return res.json();
-}
+// Auto-generated hooks
+export const {
+  useGetAccommodationsQuery,
+  useGetOneAccommodationQuery,
+  useCreateAccommodationMutation,
+  useDeleteAccommodationMutation,
+  useUpdateAccommodationMutation,
+} = accommodationApi;

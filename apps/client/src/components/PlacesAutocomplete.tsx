@@ -1,7 +1,13 @@
-import { SyntheticEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Autocomplete,
   AutocompleteRenderInputParams,
+  Box,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
   TextField,
 } from "@mui/material";
 
@@ -15,55 +21,62 @@ type PlacesAutocompleteProps = {
   onSelect: (details: PlaceDetails) => void;
 };
 
-type Prediction = google.maps.places.AutocompletePrediction;
-
 export default function PlacesAutocomplete({
   label,
   onSelect,
 }: PlacesAutocompleteProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [options, setOptions] = useState<Prediction[]>([]);
   const [input, setInput] = useState("");
+  const [options, setOptions] = useState<any[]>([]);
+  const [sessionToken, setSessionToken] = useState<any | null>(null);
+  const [language, setLanguage] = useState("en");
 
   useEffect(() => {
-    if (
-      !inputRef.current ||
-      !window.google?.maps?.places?.AutocompleteService
-    ) {
-      console.warn("Google Maps AutocompleteService API not ready");
-
-      return;
-    }
-    const service = new google.maps.places.AutocompleteService();
-
     if (!input) {
       setOptions([]);
       return;
     }
 
-    service.getPlacePredictions({ input }, (predictions) => {
-      if (predictions) setOptions(predictions);
-    });
+    const fetchSuggestions = async () => {
+      try {
+        const { AutocompleteSuggestion, AutocompleteSessionToken } =
+          (await google.maps.importLibrary(
+            "places"
+          )) as google.maps.PlacesLibrary;
+
+        // Create a session token if not already created
+        const token = sessionToken ?? new AutocompleteSessionToken();
+        setSessionToken(token);
+
+        const result =
+          await AutocompleteSuggestion.fetchAutocompleteSuggestions({
+            input,
+            sessionToken: token,
+            language,
+          });
+
+        setOptions(result.suggestions || []);
+      } catch (err) {
+        console.error("Failed to fetch autocomplete suggestions:", err);
+      }
+    };
+
+    fetchSuggestions();
   }, [input]);
 
-  const handleSelect = (
-    _: SyntheticEvent,
-    value: string | Prediction | null
-  ) => {
-    if (!value || typeof value === "string") return;
+  const handleSelect = async (_: any, selected: any | null) => {
+    if (!selected) return;
 
-    const placeService = new google.maps.places.PlacesService(
-      document.createElement("div")
-    );
-    placeService.getDetails(
-      { placeId: value.place_id, fields: ["name", "formatted_address"] },
-      (place) => {
-        if (place && place.name && place.formatted_address) {
-          onSelect({ name: place.name, address: place.formatted_address });
-          setInput(place.name);
-        }
-      }
-    );
+    const place = selected.placePrediction.toPlace();
+
+    await place.fetchFields({
+      fields: ["displayName", "formattedAddress"],
+    });
+
+    const name = place.displayName ?? "";
+    const address = place.formattedAddress ?? "";
+
+    onSelect({ name, address });
+    setInput(name);
   };
 
   const renderInputField = (params: AutocompleteRenderInputParams) => (
@@ -79,21 +92,33 @@ export default function PlacesAutocomplete({
   );
 
   return (
-    <Autocomplete
-      freeSolo
-      options={options}
-      getOptionLabel={(option) =>
-        typeof option === "string" ? option : option.description
-      }
-      isOptionEqualToValue={(option, value) =>
-        typeof option !== "string" &&
-        typeof value !== "string" &&
-        option.place_id === value.place_id
-      }
-      onChange={handleSelect}
-      inputValue={input}
-      onInputChange={(_, newVal) => setInput(newVal)}
-      renderInput={renderInputField}
-    />
+    <Stack direction="row" spacing={2} alignItems="center">
+      <Box flex={1}>
+        <Autocomplete
+          freeSolo
+          options={options}
+          getOptionLabel={(option) => option.placePrediction.text?.text || ""}
+          isOptionEqualToValue={(a, b) =>
+            a.placePrediction.placeId === b.placePrediction.placeId
+          }
+          onChange={handleSelect}
+          inputValue={input}
+          onInputChange={(_, newInput) => setInput(newInput)}
+          renderInput={renderInputField}
+        />
+      </Box>
+
+      <FormControl size="small" sx={{ width: 100 }}>
+        <InputLabel>Language</InputLabel>
+        <Select
+          label="Language"
+          value={language}
+          onChange={(e) => setLanguage(e.target.value)}
+        >
+          <MenuItem value="en">Eng</MenuItem>
+          <MenuItem value="zh">中</MenuItem>
+        </Select>
+      </FormControl>
+    </Stack>
   );
 }

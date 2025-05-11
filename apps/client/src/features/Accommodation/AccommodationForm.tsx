@@ -1,10 +1,14 @@
 import React, { useState } from "react";
-import { Accommodation, createAccommodation } from "../api/accommodation";
+import {
+  Accommodation,
+  useCreateAccommodationMutation,
+} from "../../api/accommodation";
 import { Button, Stack, TextField, Typography } from "@mui/material";
-import PlacesAutocomplete from "./PlacesAutocomplete";
-import DatePickerField from "./DatePickerField";
+import PlacesAutocomplete from "../../components/PlacesAutocomplete";
+import DatePickerField from "../../components/DatePickerField";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import ErrorMessage from "../../components/ErrorMessage";
 
 type AccommodationFormProps = {
   onSubmitComplete?: () => void;
@@ -19,15 +23,28 @@ export default function AccommodationForm({
   onSubmitComplete,
 }: AccommodationFormProps) {
   const [formData, setFormData] = useState(initialForm);
+  const [createAccommodation] = useCreateAccommodationMutation();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const isDateRangeInvalid =
+    formData.checkIn &&
+    formData.checkOut &&
+    formData.checkIn >= formData.checkOut;
+
+  const isFormValid =
+    formData.hotel.trim() &&
+    formData.location.trim() &&
+    formData.checkIn &&
+    formData.checkOut &&
+    !isDateRangeInvalid;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.checkIn || !formData.checkOut) return;
+    if (!isFormValid || !formData.checkIn || !formData.checkOut) return;
 
     await createAccommodation({
       ...formData,
@@ -47,13 +64,13 @@ export default function AccommodationForm({
         <Stack spacing={2}>
           <PlacesAutocomplete
             label="Hotel"
-            onSelect={({ name, address }) =>
+            onSelect={({ name, address }) => {
               setFormData((prev) => ({
                 ...prev,
                 hotel: name,
                 location: address,
-              }))
-            }
+              }));
+            }}
           />
           <TextField label="Location" value={formData.location} disabled />
 
@@ -71,6 +88,9 @@ export default function AccommodationForm({
               setFormData((prev) => ({ ...prev, checkOut: val }))
             }
           />
+          {isDateRangeInvalid && (
+            <ErrorMessage message="Check-out date must be later than check-in date." />
+          )}
           <TextField
             label="Notes"
             name="notes"
@@ -79,7 +99,18 @@ export default function AccommodationForm({
             multiline
             rows={2}
           />
-          <Button type="submit" variant="contained" fullWidth>
+
+          {!isFormValid && (
+            <Typography variant="caption" color="text.secondary" align="center">
+              Please fill in all required fields.
+            </Typography>
+          )}
+          <Button
+            type="submit"
+            variant="contained"
+            fullWidth
+            disabled={!isFormValid}
+          >
             Add
           </Button>
         </Stack>

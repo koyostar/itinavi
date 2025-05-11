@@ -1,23 +1,15 @@
-import { useEffect, useState } from "react";
 import {
-  Accommodation,
-  deleteAccommodation,
-  getAllAccommodations,
-} from "../api/accommodation";
+  useDeleteAccommodationMutation,
+  useGetAccommodationsQuery,
+} from "../../api/accommodation";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { Paper, Typography } from "@mui/material";
 import AccommodationActions from "./AccommodationActions";
+import { formatDateCell } from "../../utils/dateUtils";
 
 export default function AccommodationList() {
-  const [rows, setRows] = useState<Accommodation[]>([]);
-
-  useEffect(() => {
-    async function fetchData() {
-      const data = await getAllAccommodations();
-      setRows(data);
-    }
-    fetchData();
-  }, []);
+  const { data: accommodations, isLoading } = useGetAccommodationsQuery();
+  const [deleteAccommodation] = useDeleteAccommodationMutation();
 
   const handleEdit = (id: number) => {
     console.log("Edit ID:", id);
@@ -26,7 +18,6 @@ export default function AccommodationList() {
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this accommodation?")) return;
     await deleteAccommodation(id);
-    setRows((prev) => prev.filter((row) => row.id !== id));
   };
 
   const renderActionCell = (params: any) => {
@@ -34,23 +25,54 @@ export default function AccommodationList() {
     return (
       <AccommodationActions
         id={id}
+        loading={isLoading}
         onEdit={handleEdit}
         onDelete={handleDelete}
       />
     );
   };
 
+  const rows = accommodations ?? [];
+
   const columns: GridColDef[] = [
-    { field: "hotel", headerName: "Hotel", flex: 1 },
-    { field: "location", headerName: "Location", flex: 1 },
-    { field: "checkIn", headerName: "Check-in Date", type: "date", flex: 1 },
-    { field: "checkOut", headerName: "Check-out Date", type: "date", flex: 1 },
-    { field: "notes", headerName: "Notes", flex: 1 },
+    {
+      field: "hotel",
+      headerName: "Hotel",
+      cellClassName: "cellStyle",
+      flex: 2,
+    },
+    {
+      field: "location",
+      headerName: "Location",
+      cellClassName: "cellStyle",
+      flex: 2,
+    },
+    {
+      field: "checkIn",
+      headerName: "Check-in",
+      cellClassName: "cellStyle",
+      flex: 1,
+      renderCell: formatDateCell,
+    },
+    {
+      field: "checkOut",
+      headerName: "Check-out",
+      cellClassName: "cellStyle",
+      flex: 1,
+      renderCell: formatDateCell,
+    },
+    {
+      field: "notes",
+      headerName: "Notes",
+      cellClassName: "cellStyle",
+      flex: 1.5,
+    },
     {
       field: "actions",
       headerName: "Actions",
+      cellClassName: "cellStyle",
+      width: 80,
       sortable: false,
-      flex: 1,
       renderCell: renderActionCell,
     },
   ];
@@ -59,9 +81,7 @@ export default function AccommodationList() {
     <Paper
       elevation={3}
       sx={{
-        height: 420,
         width: "100%",
-        maxWidth: 900,
         mx: "auto",
         mt: 4,
         p: 2,
@@ -72,8 +92,15 @@ export default function AccommodationList() {
       </Typography>
       <DataGrid
         rows={rows}
+        loading={isLoading}
         columns={columns}
         getRowId={(row) => row.id!}
+        getRowHeight={() => "auto"}
+        sx={{
+          "& .cellStyle": {
+            paddingY: 1,
+          },
+        }}
         pageSizeOptions={[5, 10]}
         initialState={{
           pagination: { paginationModel: { pageSize: 5, page: 0 } },
