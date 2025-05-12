@@ -5,6 +5,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { Test } from './test.entity';
 import { AccommodationModule } from './accommodation/accommodation.module';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -15,9 +17,10 @@ import { AccommodationModule } from './accommodation/accommodation.module';
       autoLoadEntities: true,
       synchronize: true, // Use only for dev!
       logging: false, // SQL logging
-      entities: [Test],
     }),
     AccommodationModule,
+    AuthModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
