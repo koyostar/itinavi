@@ -13,11 +13,6 @@
   "license": "ISC",
   "packageManager": "pnpm@10.7.0",
   "devDependencies": {
-    "@types/google.maps": "^3.58.1",
     "concurrently": "^9.1.2"
-  },
-  "dependencies": {
-    "@mui/x-date-pickers": "^7.28.3",
-    "dayjs": "^1.11.13"
   }
 }
